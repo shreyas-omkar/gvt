@@ -26,9 +26,9 @@ import {
   Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
+type SupaUser = Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'];
 export function Navigation() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<SupaUser>(null);
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();

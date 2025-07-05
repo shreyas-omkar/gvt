@@ -16,14 +16,14 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { 
-  Calendar as CalendarIcon, 
-  Clock, 
-  Star, 
-  Globe, 
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  Star,
+  Globe,
   ArrowLeft,
   CheckCircle,
-  User,
+  User as UserIcon,
   Mail,
   Phone,
   MessageSquare
@@ -31,8 +31,11 @@ import {
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
+// ✅ Correct Supabase user type inferred from actual response
+type SupaUser = Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'];
+
 export default function ConsultationsPage() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<SupaUser>(null);
   const [loading, setLoading] = useState(false);
   const [date, setDate] = useState<Date>();
   const [formData, setFormData] = useState({
@@ -48,7 +51,6 @@ export default function ConsultationsPage() {
   const searchParams = useSearchParams();
   const consultationType = searchParams.get('type');
 
-  // Available time slots
   const timeSlots = [
     '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
     '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM',
@@ -57,20 +59,22 @@ export default function ConsultationsPage() {
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data, error } = await supabase.auth.getUser();
+
+      if (!data?.user) {
         router.push('/auth');
         return;
       }
-      setUser(user);
+
+      setUser(data.user);
       setFormData(prev => ({
         ...prev,
-        email: user.email || ''
+        email: data.user.email || ''
       }));
     };
+
     checkUser();
 
-    // Set consultation type from URL params
     if (consultationType && (consultationType === 'astrology' || consultationType === 'vastu')) {
       setFormData(prev => ({
         ...prev,
@@ -88,7 +92,7 @@ export default function ConsultationsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       toast.error('Please sign in to book a consultation');
       return;
@@ -146,7 +150,6 @@ export default function ConsultationsPage() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -197,7 +200,7 @@ export default function ConsultationsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="name" className="flex items-center">
-                            <User className="h-4 w-4 mr-2 text-orange-600" />
+                            <UserIcon className="h-4 w-4 mr-2 text-orange-600" />
                             Full Name *
                           </Label>
                           <Input

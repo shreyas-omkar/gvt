@@ -39,9 +39,9 @@ interface Consultation {
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   created_at: string;
 }
-
+type SupaUser = Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'];
 export default function DashboardPage() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<SupaUser>(null);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
