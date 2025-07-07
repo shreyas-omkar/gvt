@@ -18,6 +18,7 @@ export const metadata: Metadata = {
     description: 'Authentic Vedic Wisdom & Spiritual Guidance',
     type: 'website',
   },
+  metadataBase: new URL('https://gurukulavaidhiktrust.com', 'http://localhost:3000'),
 };
 
 export default function RootLayout({

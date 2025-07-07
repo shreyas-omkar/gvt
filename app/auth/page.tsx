@@ -16,25 +16,39 @@ import Link from 'next/link';
 
 export default function AuthPage() {
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const router = useRouter();
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+    const checkUserAndSync = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        try {
+          await fetch('/api/auth', {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${session.access_token}`
+            }
+          });
+        } catch (err) {
+          console.error('Failed to sync user with backend', err);
+        }
+
         router.push('/dashboard');
       }
     };
-    checkUser();
+
+    checkUserAndSync();
   }, [router]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!email) {
-      toast.error('Please enter your email address');
+
+    if (!email || !phone) {
+      toast.error('Please enter both email and phone number');
       return;
     }
 
@@ -45,13 +59,12 @@ export default function AuthPage() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: `${window.location.origin}/auth`,
+          data: { phone },
         },
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       setMessage('Check your email for the magic link to sign in!');
       toast.success('Magic link sent to your email!');
@@ -66,7 +79,7 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
+
       <div className="spiritual-gradient min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div className="text-center">
@@ -74,13 +87,13 @@ export default function AuthPage() {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Home
             </Link>
-            
+
             <div className="flex justify-center mb-6">
               <div className="p-4 rounded-full bg-gradient-to-br from-orange-500 to-yellow-500 lotus-shadow">
                 <Star className="h-12 w-12 text-white" />
               </div>
             </div>
-            
+
             <h2 className="text-3xl font-bold text-foreground">Welcome Back</h2>
             <p className="mt-2 text-sm text-muted-foreground">
               Sign in to access your spiritual journey dashboard
@@ -91,12 +104,27 @@ export default function AuthPage() {
             <CardHeader className="text-center space-y-2">
               <CardTitle className="text-2xl text-slate-800">Sacred Sign In</CardTitle>
               <CardDescription className="text-slate-600">
-                Enter your email to receive a secure magic link
+                Enter your details to receive a secure magic link
               </CardDescription>
             </CardHeader>
-            
+
             <CardContent>
               <form onSubmit={handleSignIn} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-sm font-medium text-slate-700">
+                    Phone Number
+                  </Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+91 98765 43210"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-sm font-medium text-slate-700">
                     Email Address
@@ -148,7 +176,6 @@ export default function AuthPage() {
             </CardContent>
           </Card>
 
-          {/* Trust Indicators */}
           <div className="grid grid-cols-2 gap-4 text-center">
             <div className="bg-white/60 backdrop-blur-sm rounded-lg p-4">
               <div className="text-2xl font-bold text-orange-600">🔒</div>

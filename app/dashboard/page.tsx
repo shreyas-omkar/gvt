@@ -23,83 +23,116 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Plus
+  Plus,
+  CreditCard,
+  Hash
 } from 'lucide-react';
 import Link from 'next/link';
+import {
+  getStatusBadge,
+  getConsultationIcon,
+  getConsultationTypeText
+} from '@/lib/consultations';
 
 interface Consultation {
   id: string;
-  name: string;
-  email: string;
-  phone: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  contact?: string;
+  address?: string;
   consultation_type: 'astrology' | 'vastu';
-  preferred_date: string;
-  preferred_time: string;
-  message: string | null;
+  date?: string;
+  time?: string;
+  message?: string;
+  detailed_message?: string;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   created_at: string;
+  updated_at?: string;
+  user_id: string;
+  has_paid: boolean;
 }
+
 type SupaUser = Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'];
+
 export default function DashboardPage() {
   const [user, setUser] = useState<SupaUser>(null);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/auth');
-        return;
+    const checkUserAndFetch = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        
+        if (!user) {
+          router.push('/auth');
+          return;
+        }
+        
+        setUser(user);
+        console.log('User ID:', user.id);
+
+        const res = await fetch(`/api/dashboard?user_id=${user.id}`);
+        console.log('Response status:', res.status);
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('API Error:', errorText);
+          throw new Error(`Failed to load consultations: ${res.status}`);
+        }
+        
+        const data = await res.json();
+        console.log('Fetched consultations:', data);
+        
+        const processedConsultations = (data || []).map((consultation: any) => ({
+          ...consultation,
+          name: consultation.name || consultation.client_name || consultation.user_name || '',
+          email: consultation.email || consultation.client_email || consultation.user_email || '',
+          phone: consultation.phone || consultation.contact || consultation.phone_number || '',
+          message: consultation.message || consultation.detailed_message || consultation.query || '',
+        }));
+        
+        setConsultations(processedConsultations);
+        setError(null);
+      } catch (error) {
+        console.error('Fetch error:', error);
+        setError(error instanceof Error ? error.message : 'Unknown error');
+        toast.error('Failed to load consultations');
+      } finally {
+        setLoading(false);
       }
-      setUser(user);
-      await fetchConsultations(user.id);
     };
-    checkUser();
+    
+    checkUserAndFetch();
   }, [router]);
 
-  const fetchConsultations = async (userId: string) => {
+  // Helper function to safely format date
+  const formatDate = (dateString: string) => {
     try {
-      const { data, error } = await supabase
-        .from('consultations')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setConsultations(data || []);
-    } catch (error: any) {
-      toast.error('Failed to load consultations');
-      console.error('Error fetching consultations:', error);
-    } finally {
-      setLoading(false);
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return dateString;
+      }
+      return format(date, 'MMM dd, yyyy');
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return dateString;
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800"><AlertCircle className="h-3 w-3 mr-1" />Pending</Badge>;
-      case 'confirmed':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800"><CheckCircle className="h-3 w-3 mr-1" />Confirmed</Badge>;
-      case 'completed':
-        return <Badge variant="secondary" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />Completed</Badge>;
-      case 'cancelled':
-        return <Badge variant="secondary" className="bg-red-100 text-red-800"><XCircle className="h-3 w-3 mr-1" />Cancelled</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
+  // Helper function to safely format datetime
+  const formatDateTime = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'MMM dd, yyyy • hh:mm a');
+    } catch (error) {
+      console.error('DateTime formatting error:', error);
+      return dateString;
     }
-  };
-
-  const getConsultationIcon = (type: string) => {
-    return type === 'astrology' ? 
-      <Star className="h-4 w-4 text-orange-600" /> : 
-      <Globe className="h-4 w-4 text-blue-600" />;
-  };
-
-  const getConsultationTypeText = (type: string) => {
-    return type === 'astrology' ? 'Vedic Astrology' : 'Vastu Nirnaya';
   };
 
   if (loading) {
@@ -110,6 +143,24 @@ export default function DashboardPage() {
           <div className="text-center space-y-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
             <p className="text-muted-foreground">Loading your dashboard...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+            <p className="text-red-600">Error: {error}</p>
+            <Button onClick={() => window.location.reload()}>
+              Try Again
+            </Button>
           </div>
         </div>
         <Footer />
@@ -220,51 +271,115 @@ export default function DashboardPage() {
                               </CardDescription>
                             </div>
                           </div>
-                          {getStatusBadge(consultation.status)}
+                          <div className="flex flex-col items-end gap-2">
+                            {getStatusBadge(consultation.status)}
+                            {consultation.has_paid && (
+                              <Badge variant="outline" className="text-xs border-green-300 text-green-700 bg-green-50">
+                                <CreditCard className="h-3 w-3 mr-1" />
+                                Paid
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </CardHeader>
                       
                       <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="flex items-center space-x-2">
-                            <Calendar className="h-4 w-4 text-orange-600" />
-                            <span className="text-slate-700">
-                              {format(new Date(consultation.preferred_date), 'MMM dd, yyyy')}
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Clock className="h-4 w-4 text-orange-600" />
-                            <span className="text-slate-700">{consultation.preferred_time}</span>
+                        {/* Consultation ID */}
+                        <div className="flex items-center space-x-2 text-xs text-slate-500 bg-slate-50 px-3 py-1 rounded-full">
+                          <Hash className="h-3 w-3" />
+                          <span>ID: {consultation.id}</span>
+                        </div>
+
+                        {/* Contact Information */}
+                        <div className="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                          <h4 className="text-sm font-semibold text-slate-800 mb-2">Contact Information</h4>
+                          <div className="space-y-2 text-sm">
+                            {consultation.name && (
+                              <div className="flex items-center space-x-2">
+                                <User className="h-4 w-4 text-orange-600" />
+                                <span className="text-slate-700 font-medium">{consultation.name}</span>
+                              </div>
+                            )}
+                            {consultation.email && (
+                              <div className="flex items-center space-x-2">
+                                <Mail className="h-4 w-4 text-orange-600" />
+                                <span className="text-slate-700">{consultation.email}</span>
+                              </div>
+                            )}
+                            {consultation.phone && (
+                              <div className="flex items-center space-x-2">
+                                <Phone className="h-4 w-4 text-orange-600" />
+                                <span className="text-slate-700">{consultation.phone}</span>
+                              </div>
+                            )}
+                            {consultation.address && (
+                              <div className="flex items-start space-x-2">
+                                <Globe className="h-4 w-4 text-orange-600 mt-0.5" />
+                                <span className="text-slate-700">{consultation.address}</span>
+                              </div>
+                            )}
+                            {!consultation.name && !consultation.email && !consultation.phone && !consultation.address && (
+                              <p className="text-slate-500 text-xs">Contact information not available</p>
+                            )}
                           </div>
                         </div>
 
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center space-x-2">
-                            <User className="h-4 w-4 text-orange-600" />
-                            <span className="text-slate-700">{consultation.name}</span>
+                        {/* Scheduled Date & Time */}
+                        {(consultation.date || consultation.time) && (
+                          <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Calendar className="h-4 w-4 text-blue-600" />
+                              <span className="text-sm font-medium text-blue-800">Scheduled Session</span>
+                            </div>
+                            <div className="text-sm text-blue-700">
+                              {consultation.date && (
+                                <div className="flex items-center space-x-2">
+                                  <Calendar className="h-3 w-3" />
+                                  <span>{formatDate(consultation.date)}</span>
+                                </div>
+                              )}
+                              {consultation.time && (
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{consultation.time}</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <Phone className="h-4 w-4 text-orange-600" />
-                            <span className="text-slate-700">{consultation.phone}</span>
-                          </div>
-                        </div>
+                        )}
 
+                        {/* Message/Query */}
                         {consultation.message && (
-                          <div className="p-3 bg-slate-50 rounded-lg">
+                          <div className="bg-gradient-to-br from-orange-50 to-yellow-50 p-4 rounded-lg border border-orange-100">
                             <div className="flex items-start space-x-2">
-                              <MessageSquare className="h-4 w-4 text-orange-600 mt-0.5" />
+                              <MessageSquare className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
                               <div>
-                                <p className="text-sm font-medium text-slate-700 mb-1">Your Message:</p>
+                                <p className="text-sm font-medium text-slate-700 mb-1">Your Query:</p>
                                 <p className="text-sm text-slate-600 leading-relaxed">{consultation.message}</p>
                               </div>
                             </div>
                           </div>
                         )}
 
-                        <div className="pt-2 border-t border-slate-100">
-                          <p className="text-xs text-slate-500">
-                            Booked on {format(new Date(consultation.created_at), 'MMM dd, yyyy • hh:mm a')}
-                          </p>
+                        {/* Payment Status */}
+                        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                          <div className="flex items-center space-x-2">
+                            <CreditCard className="h-4 w-4 text-slate-600" />
+                            <span className="text-sm font-medium text-slate-700">Payment Status</span>
+                          </div>
+                          <Badge variant={consultation.has_paid ? "default" : "secondary"} className={consultation.has_paid ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                            {consultation.has_paid ? "Paid" : "Pending"}
+                          </Badge>
+                        </div>
+
+                        {/* Booking Information */}
+                        <div className="pt-3 border-t border-slate-200">
+                          <div className="flex items-center justify-between text-xs text-slate-500">
+                            <span>Booked on {formatDateTime(consultation.created_at)}</span>
+                            {consultation.updated_at && consultation.updated_at !== consultation.created_at && (
+                              <span>Updated {formatDateTime(consultation.updated_at)}</span>
+                            )}
+                          </div>
                         </div>
                       </CardContent>
                     </Card>

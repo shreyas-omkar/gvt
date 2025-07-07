@@ -31,7 +31,6 @@ import {
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-// ✅ Correct Supabase user type inferred from actual response
 type SupaUser = Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'];
 
 export default function ConsultationsPage() {
@@ -41,10 +40,11 @@ export default function ConsultationsPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
+    contact: '',
+    address: '',
     consultation_type: '',
     preferred_time: '',
-    message: ''
+    detailed_message: ''
   });
 
   const router = useRouter();
@@ -59,23 +59,23 @@ export default function ConsultationsPage() {
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
+      const { data } = await supabase.auth.getUser();
 
       if (!data?.user) {
-        router.push('/auth');
+        router.push("/auth");
         return;
       }
 
       setUser(data.user);
       setFormData(prev => ({
         ...prev,
-        email: data.user.email || ''
+        email: data.user.email || ""
       }));
     };
 
     checkUser();
 
-    if (consultationType && (consultationType === 'astrology' || consultationType === 'vastu')) {
+    if (consultationType && ["astrology", "vastu"].includes(consultationType)) {
       setFormData(prev => ({
         ...prev,
         consultation_type: consultationType
@@ -93,44 +93,49 @@ export default function ConsultationsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user) {
-      toast.error('Please sign in to book a consultation');
-      return;
-    }
+    if (!user) return toast.error("Please sign in to book a consultation");
+    if (!date) return toast.error("Please select a consultation date");
 
-    if (!date) {
-      toast.error('Please select a consultation date');
-      return;
-    }
+    const {
+      name, contact, address, consultation_type, preferred_time
+    } = formData;
 
-    if (!formData.name || !formData.phone || !formData.consultation_type || !formData.preferred_time) {
-      toast.error('Please fill in all required fields');
-      return;
+    if (!name || !contact || !address || !consultation_type || !preferred_time) {
+      return toast.error("Please fill in all required fields");
     }
 
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('consultations')
-        .insert({
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data?.session?.access_token;
+
+      const res = await fetch("/api/consultations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
           user_id: user.id,
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          consultation_type: formData.consultation_type as 'astrology' | 'vastu',
-          preferred_date: format(date, 'yyyy-MM-dd'),
-          preferred_time: formData.preferred_time,
-          message: formData.message,
-          status: 'pending'
-        });
+          consultation_type,
+          preferred_date: date,
+          preferred_time,
+          contact,
+          address,
+          detailed_message: formData.detailed_message,
+          status: "pending",
+          has_paid: false
+        })
+      });
 
-      if (error) throw error;
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Failed to book consultation");
 
-      toast.success('Consultation booked successfully! We will contact you soon.');
-      router.push('/dashboard');
-    } catch (error: any) {
-      toast.error(error.message || 'An error occurred while booking consultation');
+      toast.success("Consultation booked successfully!");
+      router.push("/dashboard");
+    } catch (err: any) {
+      toast.error(err.message || "An error occurred while booking consultation");
     } finally {
       setLoading(false);
     }
@@ -231,7 +236,7 @@ export default function ConsultationsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="phone" className="flex items-center">
+                        <Label htmlFor="contact" className="flex items-center">
                           <Phone className="h-4 w-4 mr-2 text-orange-600" />
                           Phone Number *
                         </Label>
@@ -239,12 +244,24 @@ export default function ConsultationsPage() {
                           id="phone"
                           type="tel"
                           placeholder="+91 98765 43210"
-                          value={formData.phone}
-                          onChange={(e) => handleInputChange('phone', e.target.value)}
+                          value={formData.contact}
+                          onChange={(e) => handleInputChange('contact', e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                       <Label htmlFor="address">Address *</Label>
+                        <Textarea
+                          id="address"
+                          placeholder="Enter your full address"
+                          value={formData.address}
+                          onChange={(e) => handleInputChange('address', e.target.value)}
+                          rows={2}
                           required
                         />
                       </div>
                     </div>
+                    
 
                     {/* Consultation Preferences */}
                     <div className="space-y-4">
@@ -332,15 +349,15 @@ export default function ConsultationsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="message" className="flex items-center">
+                        <Label htmlFor="detailed_message" className="flex items-center">
                           <MessageSquare className="h-4 w-4 mr-2 text-orange-600" />
                           Additional Message
                         </Label>
                         <Textarea
-                          id="message"
+                          id="detailed_message"
                           placeholder="Share any specific questions or concerns you'd like to discuss..."
-                          value={formData.message}
-                          onChange={(e) => handleInputChange('message', e.target.value)}
+                          value={formData.detailed_message}
+                          onChange={(e) => handleInputChange('detailed_message', e.target.value)}
                           rows={4}
                         />
                       </div>
