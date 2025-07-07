@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createConsultation, getAllConsultations } from '@/lib/db';
+import { createConsultation, getConsultationsByUser } from '@/lib/db';
 import { supabase } from '@/lib/db';
 
 export async function POST(req: NextRequest) {
@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       user_id,
+      fullname,
       consultation_type,
       preferred_date,
       preferred_time,
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
 
     await createConsultation({
       user_id,
+      fullname,
       consultation_type,
       date: preferred_date,
       time: preferred_time,
@@ -54,9 +56,24 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const consultations = await getAllConsultations();
+    const token = req.headers.get('authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const {
+      data: { user },
+      error: authError
+    } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    const consultations = await getConsultationsByUser(user.id);
+
     return NextResponse.json(consultations, { status: 200 });
   } catch (err: any) {
     console.error('GET /api/consultations error:', err.message);

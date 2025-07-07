@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Star, Mail, Phone, MapPin, Heart } from 'lucide-react';
 
 export function Footer() {
@@ -9,9 +10,14 @@ export function Footer() {
           {/* Brand Section */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <div className="p-2 rounded-full bg-gradient-to-br from-orange-500 to-yellow-500">
-                <Star className="h-6 w-6 text-white" />
-              </div>
+              
+                <Image
+      src="/logo.svg"
+      alt="Gurukula Vaidhik Trust Logo"
+      width={50}
+      height={50}
+      className="h-12 w-12"
+    />
               <div>
                 <h3 className="text-lg font-bold">Gurukula Vaidhik Trust</h3>
                 <p className="text-sm text-slate-300">Vedic Wisdom & Guidance</p>
@@ -59,18 +65,18 @@ export function Footer() {
             <div className="space-y-3">
               <div className="flex items-center space-x-3 text-sm">
                 <Mail className="h-4 w-4 text-orange-400 flex-shrink-0" />
-                <span className="text-slate-300">contact@gurukulavaidhiktrust.com</span>
+                <span className="text-slate-300">service@gurukulavaidhiktrust.com</span>
               </div>
               <div className="flex items-center space-x-3 text-sm">
                 <Phone className="h-4 w-4 text-orange-400 flex-shrink-0" />
-                <span className="text-slate-300">+91 98765 43210</span>
+                <span className="text-slate-300">+91 94220 09994</span>
               </div>
               <div className="flex items-start space-x-3 text-sm">
                 <MapPin className="h-4 w-4 text-orange-400 flex-shrink-0 mt-0.5" />
                 <span className="text-slate-300">
-                  Traditional Vedic Center<br />
-                  Sacred Knowledge Hub<br />
-                  India
+                  Sharada Krupa, H.no. 108<br />
+                  Kasturu, Shrinagara, Siddapur<br />
+                  Uttara Kannada, Karnataka, India - 581355.
                 </span>
               </div>
             </div>
@@ -91,7 +97,7 @@ export function Footer() {
         <div className="mt-8 pt-8 border-t border-slate-700">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-slate-400 text-sm">
-              © 2024 Gurukula Vaidhik Trust. All rights reserved.
+              © 2025 Gurukula Vaidhik Trust. All rights reserved.
             </div>
             <div className="flex items-center space-x-1 text-slate-400 text-sm">
               <span>Built with</span>

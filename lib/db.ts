@@ -51,6 +51,7 @@ export const getAllUsers = async () => {
 
 export const createConsultation = async (consultation: {
   user_id: string;
+  fullname: string;
   consultation_type: string;
   date: string;
   time: string;
@@ -109,3 +110,43 @@ export const markConsultationPaid = async (id: string, has_paid = true) => {
 
   if (error) throw new Error(error.message);
 };
+
+
+// =================== AVAILABILITY (ADMIN TIME SLOTS) ===================
+
+export const getAllAvailability = async () => {
+  const { data, error } = await supabase
+    .from('availability')
+    .select('*')
+    .order('date', { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+export const createAvailabilitySlot = async (date: string, time: string) => {
+  const { error } = await supabase
+    .from('availability')
+    .insert([{ date, time }]);
+
+  if (error) throw new Error(error.message);
+};
+
+export const deleteAvailabilitySlot = async (id: string) => {
+  const { error } = await supabase
+    .from('availability')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw new Error(error.message);
+};
+
+export const markAvailabilityAsBooked = async (id: string, consultationId: string) => {
+  const { error } = await supabase
+    .from('availability')
+    .update({ is_booked: true, consultation_id: consultationId })
+    .eq('id', id);
+
+  if (error) throw new Error(error.message);
+};
+

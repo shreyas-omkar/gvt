@@ -118,6 +118,7 @@ export default function ConsultationsPage() {
         },
         body: JSON.stringify({
           user_id: user.id,
+          fullname: name,
           consultation_type,
           preferred_date: date,
           preferred_time,

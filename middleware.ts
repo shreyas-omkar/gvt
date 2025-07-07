@@ -19,5 +19,6 @@ export const config = {
   matcher: [
     '/dashboard',
     '/api/auth',
+    '/api/consultations'
   ],
 };

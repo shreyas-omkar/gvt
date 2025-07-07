@@ -36,7 +36,7 @@ import {
 
 interface Consultation {
   id: string;
-  name?: string;
+  fullname?: string;
   email?: string;
   phone?: string;
   contact?: string;
@@ -65,30 +65,28 @@ export default function DashboardPage() {
   useEffect(() => {
     const checkUserAndFetch = async () => {
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        
-        if (!user) {
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        const { data: sessionData } = await supabase.auth.getSession();
+
+        if (userError || !user || !sessionData?.session?.access_token) {
           router.push('/auth');
           return;
         }
-        
-        setUser(user);
-        console.log('User ID:', user.id);
 
-        const res = await fetch(`/api/dashboard?user_id=${user.id}`);
-        console.log('Response status:', res.status);
-        
+        setUser(user);
+
+        const res = await fetch(`/api/dashboard`, {
+          headers: {
+            Authorization: `Bearer ${sessionData.session.access_token}`
+          }
+        });
+
         if (!res.ok) {
           const errorText = await res.text();
-          console.error('API Error:', errorText);
-          throw new Error(`Failed to load consultations: ${res.status}`);
+          throw new Error(`Failed to load consultations: ${errorText}`);
         }
-        
+
         const data = await res.json();
-        console.log('Fetched consultations:', data);
-        
         const processedConsultations = (data || []).map((consultation: any) => ({
           ...consultation,
           name: consultation.name || consultation.client_name || consultation.user_name || '',
@@ -96,9 +94,8 @@ export default function DashboardPage() {
           phone: consultation.phone || consultation.contact || consultation.phone_number || '',
           message: consultation.message || consultation.detailed_message || consultation.query || '',
         }));
-        
+
         setConsultations(processedConsultations);
-        setError(null);
       } catch (error) {
         console.error('Fetch error:', error);
         setError(error instanceof Error ? error.message : 'Unknown error');
@@ -107,9 +104,44 @@ export default function DashboardPage() {
         setLoading(false);
       }
     };
-    
+
     checkUserAndFetch();
   }, [router]);
+
+  const handleDelete = async (id: string) => {
+    if (!user) return;
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+
+    if (!token) {
+      toast.error('Not authenticated');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/dashboard', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ id })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || 'Failed to delete consultation');
+        return;
+      }
+
+      toast.success('Consultation deleted');
+      setConsultations((prev) => prev.filter((c) => c.id !== id));
+    } catch (err) {
+      console.error(err);
+      toast.error('An error occurred while deleting');
+    }
+  };
 
   // Helper function to safely format date
   const formatDate = (dateString: string) => {
@@ -279,6 +311,17 @@ export default function DashboardPage() {
                                 Paid
                               </Badge>
                             )}
+                            {consultation.status === 'pending' && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDelete(consultation.id)}
+                                className="mt-2"
+                              >
+                                <XCircle className="w-4 h-4 mr-1" />
+                                Cancel
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </CardHeader>
@@ -294,10 +337,10 @@ export default function DashboardPage() {
                         <div className="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
                           <h4 className="text-sm font-semibold text-slate-800 mb-2">Contact Information</h4>
                           <div className="space-y-2 text-sm">
-                            {consultation.name && (
+                            {consultation.fullname && (
                               <div className="flex items-center space-x-2">
                                 <User className="h-4 w-4 text-orange-600" />
-                                <span className="text-slate-700 font-medium">{consultation.name}</span>
+                                <span className="text-slate-700 font-medium">{consultation.fullname}</span>
                               </div>
                             )}
                             {consultation.email && (
@@ -318,7 +361,7 @@ export default function DashboardPage() {
                                 <span className="text-slate-700">{consultation.address}</span>
                               </div>
                             )}
-                            {!consultation.name && !consultation.email && !consultation.phone && !consultation.address && (
+                            {!consultation.fullname && !consultation.email && !consultation.phone && !consultation.address && (
                               <p className="text-slate-500 text-xs">Contact information not available</p>
                             )}
                           </div>

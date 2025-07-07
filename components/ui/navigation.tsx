@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image';
 import { 
   NavigationMenu,
   NavigationMenuContent,
@@ -68,14 +69,19 @@ export function Navigation() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-            <div className="p-2 rounded-full bg-gradient-to-br from-orange-500 to-yellow-500">
-              <Star className="h-6 w-6 text-white" />
-            </div>
-            <div className="hidden sm:block">
-              <div className="text-lg font-bold text-slate-800">Gurukula Vaidhik Trust</div>
-              <div className="text-xs text-slate-600">Ancient Wisdom • Modern Living</div>
-            </div>
-          </Link>
+  
+    <Image
+      src="/logo.svg"
+      alt="Gurukula Vaidhik Trust Logo"
+      width={50}
+      height={50}
+      className="h-12 w-12"
+    />
+  <div className="hidden sm:block">
+    <div className="text-lg font-bold text-slate-800">Gurukula Vaidhik Trust</div>
+    <div className="text-xs text-slate-600">Ancient Wisdom • Modern Living</div>
+  </div>
+</Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">

@@ -1,5 +1,5 @@
 'use client';
-
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -40,9 +40,13 @@ export default function HomePage() {
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center space-y-8 animate-fade-in">
             <div className="flex justify-center mb-6">
-              <div className="p-4 rounded-full bg-gradient-to-br from-orange-500 to-yellow-500 lotus-shadow">
-                <Star className="h-12 w-12 text-white" />
-              </div>
+              <Image
+                    src="/logo.svg"
+                    alt="Gurukula Vaidhik Trust Logo"
+                    width={50}
+                    height={50}
+                    className="h-24 w-24"
+                  />
             </div>
             
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">
@@ -75,13 +79,13 @@ export default function HomePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12 max-w-3xl mx-auto">
               <div className="text-center space-y-2">
-                <div className="text-3xl font-bold text-orange-600">500+</div>
+                <div className="text-3xl font-bold text-orange-600">100k+</div>
                 <div className="text-slate-600">Consultations</div>
               </div>
               <div className="text-center space-y-2">
-                <div className="text-3xl font-bold text-orange-600">25+</div>
+                <div className="text-3xl font-bold text-orange-600">30+</div>
                 <div className="text-slate-600">Years Experience</div>
-              </div>
+              </div> 
               <div className="text-center space-y-2">
                 <div className="text-3xl font-bold text-orange-600">98%</div>
                 <div className="text-slate-600">Satisfaction Rate</div>
@@ -96,7 +100,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="text-center space-y-4 mb-16 animate-slide-up">
             <Badge variant="secondary" className="bg-orange-100 text-orange-800 px-4 py-2">
-              Our Sacred Services
+              Our Services
             </Badge>
             <h2 className="text-4xl md:text-5xl font-bold text-slate-800">
               Discover Your Path to
@@ -252,7 +256,7 @@ export default function HomePage() {
               <div className="mx-auto p-4 rounded-full bg-white shadow-lg w-fit group-hover:shadow-xl transition-shadow">
                 <Clock className="h-8 w-8 text-orange-600" />
               </div>
-              <h3 className="text-xl font-semibold text-slate-800">25+ Years Experience</h3>
+              <h3 className="text-xl font-semibold text-slate-800">30+ Years Experience</h3>
               <p className="text-slate-600">Decades of dedicated practice in Vedic sciences</p>
             </div>
 
