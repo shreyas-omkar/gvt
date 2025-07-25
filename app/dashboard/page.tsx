@@ -164,7 +164,7 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('DateTime formatting error:', error);
       return dateString;
-    }
+    }8
   };
 
   if (loading) {

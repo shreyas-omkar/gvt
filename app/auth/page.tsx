@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Star, Mail, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { FcGoogle } from 'react-icons/fc';
 
 export default function AuthPage() {
   const [email, setEmail] = useState('');
@@ -23,18 +24,26 @@ export default function AuthPage() {
 
   useEffect(() => {
     const checkUserAndSync = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error("Session fetch error:", error);
+        return;
+      }
 
       if (session?.user) {
         try {
           await fetch('/api/auth', {
             method: 'GET',
             headers: {
-              Authorization: `Bearer ${session.access_token}`
-            }
+              Authorization: `Bearer ${session.access_token}`,
+            },
           });
         } catch (err) {
-          console.error('Failed to sync user with backend', err);
+          console.error('❌ Failed to sync user with backend:', err);
         }
 
         router.push('/dashboard');
@@ -43,6 +52,7 @@ export default function AuthPage() {
 
     checkUserAndSync();
   }, [router]);
+
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,6 +176,24 @@ export default function AuthPage() {
                     </>
                   )}
                 </Button>
+                <div className="my-6">
+                  <Button
+                    type="button"
+                    onClick={async () => {
+                      await supabase.auth.signInWithOAuth({
+                        provider: 'google',
+                        options: {
+                          redirectTo: `${window.location.origin}/auth`, // After login
+                        },
+                      });
+                    }}
+                    className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 px-4 py-2 rounded-md shadow-sm transition-all duration-200"
+                  >
+                    <FcGoogle size={20} />
+                    <span className="font-medium">Continue with Google</span>
+                  </Button>
+                </div>
+
               </form>
 
               <div className="mt-6 text-center">

@@ -175,7 +175,7 @@ export default function AboutPage() {
                   <div className="mx-auto p-4 rounded-full bg-gradient-to-br from-orange-100 to-yellow-100 w-fit">
                     <Clock className="h-8 w-8 text-orange-600" />
                   </div>
-                  <h3 className="text-xl font-semibold text-slate-800">25+ Years Experience</h3>
+                  <h3 className="text-xl font-semibold text-slate-800">30+ Years Experience</h3>
                   <p className="text-slate-600 text-sm">Decades of dedicated practice in traditional Vedic sciences</p>
                 </div>
 
